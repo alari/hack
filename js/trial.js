@@ -109,49 +109,10 @@ async function readResults() {
   )
 }
 
-
-
-
-function main() {
-   if(process.argv.length < 3) {
-      console.error("Please specify action to run");
-      process.exit(1);
-   }
-
-   var cmd = process.argv[2];
-
-   if(cmd === 'deployTrialContract') {
-      deployTrialContract();
-   }
-   else if(cmd === 'registerPatient') {
-      registerPatient();
-   }
-   else if(cmd === 'setPlaceboEncryptedMappingHash') {
-      setPlaceboEncryptedMappingHash();
-   }
-   else if(cmd === 'recordEntry') {
-      recordEntry();
-   }
-   else if(cmd === 'recordFinal') {
-      recordFinal();
-   }
-   else if(cmd === 'recordMetric') {
-      recordMetric();
-   }
-   else if(cmd === 'revealPlaceboOrPill') {
-      revealPlaceboOrPill();
-   }
-   else if(cmd === 'readResults') {
-      readResults();
-   }
-}
-
-//main();
-
 async function trial(){
 
 
-  const contract = await deployTrialContract(1);
+  const contract = await deployTrialContract(2);
   console.log("mined: ", contract.address)
 
   const data = fs.readFileSync('./data.txt', 'utf8').split('\n');

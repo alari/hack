@@ -52,129 +52,69 @@ function hex2string(hex) {
    return ret;
 }
 
+function runPromise(cb) {
+  return new Promise((resolve, reject) => cb((err, res) =>
+    !!err ? reject(err) : resolve(res)
+  ))
+}
 
 async function deployTrialContract() {
-   var trialContract = web3.eth.contract(trialAbi);
-  return new Promise((resolve, reject) =>  trialContract.new(_bigPharma, _numOfPatients, _researcher,
-     { from: pharmAccount, data: trialBin, gas: defaultGas }, function (error1, contract1){
-     if (error1) {
-        console.error("could not mine clinical trial contract");
-        reject()
-     }
-     if(contract1.address === undefined) {return;}
-
-     console.log('Clinical trial contract mined! address: ' + contract1.address + ' transactionHash: ' + contract1.transactionHash);
-     trialContractAddress = contract1.address;
-     resolve(contract1)
-  }));
-
+  return runPromise(cb => trialContract.new(_bigPharma, _numOfPatients, _researcher,
+    { from: pharmAccount, data: trialBin, gas: defaultGas }, (err, contract) => {
+    if(!contract.address) return;
+    if(!!contract && !!contract.address) trialContractAddress = contract.address
+      cb(err, contract)
+    }))
 }
 
 async function registerPatient() {
-   var trial = trialContract.at(trialContractAddress);
-
-   console.log("stage");
-   console.log(trial.stage.call());
-
-   return new Promise((resolve, reject) => trial.registerPatient.sendTransaction({from: patientAccount1, gas: defaultGas},
-      function (error1, txHash) {
-         if(error1) {
-            console.error("error registering patient", error1);
-            reject()
-            process.exit(1);
-         }
-         resolve(txHash)
-         console.log("registering patient",txHash);
-      }
-   ))
+  return runPromise(cb =>
+    trialContract.at(trialContractAddress)
+      .registerPatient.sendTransaction({from: patientAccount1, gas: defaultGas},cb))
 }
 
-async function setPlaceboEncryptedMappingHash() {
-   var trial = trialContract.at(trialContractAddress);
-   return new Promise((resolve, reject) =>  trial.setPlaceboEncryptedMappingHash.sendTransaction(mappingHash, {from: pharmAccount, gas: defaultGas},
-      function (error1, txHash) {
-         if(error1) {
-            console.error("error setting mapping hash", error1);
-            reject()
-            process.exit(1);
-         }
-         resolve(txHash)
-         console.log("setting mapping hash",txHash);
-      }
-   ))
+async function setPlaceboEncryptedMappingHash(_hash) {
+  return runPromise(cb =>
+    trialContract.at(trialContractAddress)
+      .setPlaceboEncryptedMappingHash.sendTransaction(_hash, {from: pharmAccount, gas: defaultGas}, cb))
 }
 
-async function recordEntry() {
-   var trial = trialContract.at(trialContractAddress);
-   return new Promise((resolve, reject) =>  trial.recordEntry.sendTransaction(entryHash, {from: patientAccount1, gas: defaultGas},
-      function (error1, txHash) {
-         if(error1) {
-            console.error("error recordEntry", error1);
-            reject()
-            process.exit(1);
-         }
-         resolve(txHash)
-         console.log("setting recordEntry",txHash);
-      }
-   ))
+async function recordEntry(_entryHash) {
+  return runPromise(cb =>
+    trialContract.at(trialContractAddress)
+      .recordEntry.sendTransaction(_entryHash, {from: patientAccount1, gas: defaultGas}, cb)
+  )
 }
 
-async function recordFinal() {
-   var trial = trialContract.at(trialContractAddress);
-   return new Promise((resolve, reject) =>  trial.recordFinal.sendTransaction(entryHashFinal, {from: patientAccount1, gas: defaultGas},
-      function (error1, txHash) {
-         if(error1) {
-            console.error("error recordFinal", error1);
-            reject()
-            process.exit(1);
-         }
-         resolve(txHash)
-         console.log("setting recordFinal",txHash);
-      }
-   ))
+async function recordFinal(_hash) {
+  return runPromise(cb =>
+    trialContract.at(trialContractAddress)
+      .recordFinal.sendTransaction(_hash, {from: patientAccount1, gas: defaultGas}, cb)
+  )
 }
 
-async function recordMetric() {
-   var trial = trialContract.at(trialContractAddress);
-   return new Promise((resolve, reject) =>  trial.recordMetric.sendTransaction(patientAccount1, metric, {from: researcherAccount, gas: defaultGas},
-      function (error1, txHash) {
-         if(error1) {
-            console.error("error recordMetric", error1);
-            reject(error1)
-            process.exit(1);
-         }
-         resolve(txHash)
-         console.log("setting recordMetric",txHash);
-      }
-   ))
+async function recordMetric(_metric) {
+  return runPromise(cb =>
+    trialContract.at(trialContractAddress)
+      .recordMetric.sendTransaction(patientAccount1, _metric, {from: researcherAccount, gas: defaultGas}, cb)
+  )
 }
 
-async function revealPlaceboOrPill() {
-   var trial = trialContract.at(trialContractAddress);
-   return new Promise((resolve, reject) =>  trial.revealPlaceboOrPill.sendTransaction(patientAccount1, isPlacebo, {from: pharmAccount, gas: defaultGas},
-      function (error1, txHash) {
-         if(error1) {
-            console.error("error revealPlaceboOrPill", error1);
-            reject(error1)
-            process.exit(1);
-         }
-         resolve(txHash)
-         console.log("setting revealPlaceboOrPill",txHash);
-      }
-   ))
+async function revealPlaceboOrPill(_isPlacebo) {
+  return runPromise(cb =>
+    trialContract.at(trialContractAddress)
+      .revealPlaceboOrPill.sendTransaction(patientAccount1, _isPlacebo, {from: pharmAccount, gas: defaultGas}, cb)
+  )
 }
 
 async function readResults() {
-   console.log("QUERYING ADDRESS", trialContractAddress)
-   var trial = trialContract.at(trialContractAddress);
-
-   return new Promise((resolve, reject) =>  trial.results.call(function (error1, data) {
-     console.log("STAGE ON RESULTS", trial.stage.call())
-     console.log("err, data", error1, data)
-
-     return (!!error1 || !data) ? reject(error1) : resolve({avgPlacebo: data[0].toNumber(), avgPills: data[1].toNumber()})
-
-   }))
+  return runPromise(cb =>
+    trialContract.at(trialContractAddress)
+      .results.call((err, data) => {
+      if(!!data) data = {avgPlacebo: data[0].toNumber(), avgPills: data[1].toNumber()}
+      cb(err, data)
+    })
+  )
 }
 
 
@@ -217,14 +157,31 @@ function main() {
 //main();
 
 async function trial(){
-   await deployTrialContract();
+
+
+  const contract = await deployTrialContract();
+  console.log("mined: ", contract.address)
+
+  const data = fs.readFileSync('./data.txt', 'utf8').split('\n');
+
+  const mappingHash = data[0]
+  const entryHash = data[1]
+  const finalHash = data[2]
+  const metric = parseInt(data[3])
+  const isPlacebo = data[4] === "true"
+
+  // console.log("mappingHash", mappingHash)
+  // console.log("entryHash", entryHash)
+  // console.log("finalHash", finalHash)
+  // console.log("metric", metric)
+  // console.log("isPlacebo", isPlacebo)
 
   await registerPatient()
-  await setPlaceboEncryptedMappingHash()
-  await recordEntry()
-  await recordFinal()
-  await recordMetric()
-  await revealPlaceboOrPill()
+  await setPlaceboEncryptedMappingHash(mappingHash)
+  await recordEntry(entryHash)
+  await recordFinal(finalHash)
+  await recordMetric(metric)
+  await revealPlaceboOrPill(isPlacebo)
   const results = await readResults()
 
   console.log("Results: ", results)

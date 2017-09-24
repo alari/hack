@@ -1,0 +1,5 @@
+mapping hash
+hash for entry test
+hash for final test
+143
+true

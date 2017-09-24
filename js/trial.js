@@ -152,9 +152,9 @@ function readResults() {
       
       console.log(data);
       
-      data[0] = hex2string(data[0]);
-      data[1] = hex2string(data[1]);
-      console.log("Results: avgPlacebo = ",data[0]," avgPills = ", data[1]);
+      //data[0] = hex2string(data[0]);
+      //data[1] = hex2string(data[1]);
+      console.log("Results: avgPlacebo = ",data[0].toNumber()," avgPills = ", data[1].toNumber());
    })
    console.log(trial.stage.call());
 }

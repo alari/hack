@@ -1,5 +1,5 @@
 mapping hash
-hash for entry test
-hash for final test
-143
-true
+hash for entry test|for patient2
+hash for final test|final 2
+143|322
+True|False

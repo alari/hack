@@ -86,7 +86,7 @@ async function recordEntry(_entryHash) {
   // Then patient provides hash of the data, e.g. Merkle root of it, to prevent any change
   return Promise.all(patients.slice(0, numOfPatients).map((p, i) => runPromise(cb =>
     trialContract.at(trialContractAddress)
-      .recordEntry.sendTransaction(_entryHash[i], {from: p, gas: defaultGas}, cb)
+      .recordEntry.sendTransaction(_entryHash[Math.min(i, _entryHash.length-1)], {from: p, gas: defaultGas}, cb)
   )))
 }
 
@@ -95,7 +95,7 @@ async function recordFinal(_hash) {
   // to see whether pills cure or not.
   return Promise.all(patients.slice(0, numOfPatients).map((p, i) => runPromise(cb =>
     trialContract.at(trialContractAddress)
-      .recordFinal.sendTransaction(_hash[i], {from: p, gas: defaultGas}, cb)
+      .recordFinal.sendTransaction(_hash[Math.min(i, _hash.length-1)], {from: p, gas: defaultGas}, cb)
   )))
 }
 

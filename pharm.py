@@ -18,6 +18,8 @@ matching_data = [
 	}
 ]
 
+#encrypted_data = pre.encrypt(pk_a, matching_data)
+
 # Save matching data to IPFS
 api = ipfsapi.connect('127.0.0.1', 5001)
 res_id = api.add_json(json.dumps(matching_data))

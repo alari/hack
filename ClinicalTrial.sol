@@ -13,12 +13,12 @@ contract ClinicalTrial {
     }
 
     struct Patient {
-        Stages stage;
-        address prev;
-        string entryHash;
-        string finalHash;
-        uint metric;
-        bool isPlacebo;
+    Stages stage;
+    address prev;
+    string entryHash;
+    string finalHash;
+    uint metric;
+    bool isPlacebo;
     }
 
     // This is the current stage.
@@ -191,9 +191,16 @@ contract ClinicalTrial {
             addr = patient.prev;
         }
 
-        avgPlacebo = sumPlacebo / numPlacebo;
-        avgPills = sumPills / numPills;
-
+        if(numPlacebo > 0) {
+            avgPlacebo = sumPlacebo / numPlacebo;
+        } else {
+            avgPlacebo = 0;
+        }
+        if(numPills > 0) {
+            avgPills = sumPills / numPills;
+        } else {
+            avgPills = 0;
+        }
     }
 
 }

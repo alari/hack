@@ -36,84 +36,106 @@ const patients = [
 console.log("Connecting to node");
 console.log("===================================");
 
-web3.eth.getBlockNumber(function(error, number){
-   console.log("blockNumber= "+number);
+web3.eth.getBlockNumber(function (error, number) {
+  console.log("blockNumber= " + number);
 });
 
+// Ugly helper to run web3 actions inside a Promise and benefit from async/await feature
 function runPromise(cb) {
   return new Promise((resolve, reject) => cb((err, res) =>
     !!err ? reject(err) : resolve(res)
   ))
 }
 
+// At first, one should deploy a contract.
+// Researcher address, pharm company address, and number of patients to join the trial are provided there.
 async function deployTrialContract(_numOfPatients) {
   numOfPatients = _numOfPatients;
   return runPromise(cb => trialContract.new(pharmAccount, _numOfPatients, researcherAccount,
-    { from: pharmAccount, data: trialBin, gas: defaultGas }, (err, contract) => {
-    if(!contract.address) return;
-    if(!!contract && !!contract.address) trialContractAddress = contract.address
+    {from: pharmAccount, data: trialBin, gas: defaultGas}, (err, contract) => {
+      if (!contract.address) return;
+
+      // On deployment, save contract address for further use.
+      // It should be known for all parties
+      if (!!contract && !!contract.address) trialContractAddress = contract.address
       cb(err, contract)
     }))
 }
 
 async function registerPatient() {
-  console.log("register patient", patients.slice(0, numOfPatients))
-
-  return Promise.all(patients.slice(0, numOfPatients).map(p =>  runPromise(cb =>
+  // Each patient sends "registerPatient" transaction, saving patient's address to the list.
+  // When the list is full and there's enough patients to run trial, pharm should choose who will get placebo, and who take pills
+  return Promise.all(patients.slice(0, numOfPatients).map(p => runPromise(cb =>
     trialContract.at(trialContractAddress)
-      .registerPatient.sendTransaction({from: p, gas: defaultGas},cb))))
+      .registerPatient.sendTransaction({from: p, gas: defaultGas}, cb))))
 
 }
 
 async function setPlaceboEncryptedMappingHash(_hash) {
+  // Encrypting and decrypting is too expensive in the means of gas for ethereum.
+  // So pharm company stores the mapping from patient addresses to encrypted (in non-determenistic way) flags, whether patient takes placebo or not
+  // Hash of this mapping (e.g. Merkle root) is stored here, in order to prevent further changes
   return runPromise(cb =>
     trialContract.at(trialContractAddress)
       .setPlaceboEncryptedMappingHash.sendTransaction(_hash, {from: pharmAccount, gas: defaultGas}, cb))
 }
 
 async function recordEntry(_entryHash) {
-  return Promise.all(patients.slice(0, numOfPatients).map((p, i) =>  runPromise(cb =>
+  // Each patient passes some medical tests on the beginning of trial.
+  // Tests could be huge. Tests data is to be stored somewhere, e.g. on Fluence or in IPFS.
+  // Then patient provides hash of the data, e.g. Merkle root of it, to prevent any change
+  return Promise.all(patients.slice(0, numOfPatients).map((p, i) => runPromise(cb =>
     trialContract.at(trialContractAddress)
       .recordEntry.sendTransaction(_entryHash[i], {from: p, gas: defaultGas}, cb)
   )))
 }
 
 async function recordFinal(_hash) {
-  return Promise.all(patients.slice(0, numOfPatients).map((p, i) =>  runPromise(cb =>
+  // After the course of pills or placebo is taken, each patient pass some medical tests again,
+  // to see whether pills cure or not.
+  return Promise.all(patients.slice(0, numOfPatients).map((p, i) => runPromise(cb =>
     trialContract.at(trialContractAddress)
       .recordFinal.sendTransaction(_hash[i], {from: p, gas: defaultGas}, cb)
   )))
 }
 
 async function recordMetric(_metric) {
-  return Promise.all(patients.slice(0, numOfPatients).map((p, i) =>  runPromise(cb =>
+  // Researcher looks the data of patients, and for each patient adds a numerical metric,
+  // which refers to success rate of healing. Note: researcher still can't know who have been taking placebo.
+  // Metrics are added without encryption: it's safe.
+  return Promise.all(patients.slice(0, numOfPatients).map((p, i) => runPromise(cb =>
     trialContract.at(trialContractAddress)
       .recordMetric.sendTransaction(p, _metric[i], {from: researcherAccount, gas: defaultGas}, cb)
   )))
 }
 
 async function revealPlaceboOrPill(_isPlacebo) {
-  return Promise.all(patients.slice(0, numOfPatients).map((p, i) =>  runPromise(cb =>
+  // After metrics are collected, pharm company reveals who was taking pills, and who are not.
+  // This data could be checked with the data stored on external DB on the beginning.
+  return Promise.all(patients.slice(0, numOfPatients).map((p, i) => runPromise(cb =>
     trialContract.at(trialContractAddress)
       .revealPlaceboOrPill.sendTransaction(p, _isPlacebo[i], {from: pharmAccount, gas: defaultGas}, cb)
   )))
 }
 
 async function readResults() {
+  // Now all the data is collected on a contract.
+  // Contract provides a simple view of the results.
+  // For demo purposes, it's just average of metric for both groups of patients.
   return runPromise(cb =>
     trialContract.at(trialContractAddress)
       .results.call((err, data) => {
-      if(!!data) data = {avgPlacebo: data[0].toNumber(), avgPills: data[1].toNumber()}
+      if (!!data) data = {avgPlacebo: data[0].toNumber(), avgPills: data[1].toNumber()}
       cb(err, data)
     })
   )
 }
 
-async function trial(){
+async function trial() {
 
-
+  console.log("Deploying Clinical Trial contract...")
   const contract = await deployTrialContract(2);
-  console.log("mined: ", contract.address)
+  console.log("Deployed at: ", contract.address)
 
   const data = fs.readFileSync('./data.txt', 'utf8').split('\n');
 
@@ -129,17 +151,30 @@ async function trial(){
   // console.log("metric", metric)
   // console.log("isPlacebo", isPlacebo)
 
+  console.log("Registering patients...")
   await registerPatient()
+
+  console.log("Pharma company provides encrypted mapping's hash...")
   await setPlaceboEncryptedMappingHash(mappingHash)
+
+  console.log("Patients record theirs entry medical test data hashes...")
   await recordEntry(entryHash)
+
+  console.log("Patients record theirs final medical test data hashes...")
   await recordFinal(finalHash)
+
+  console.log("Researcher calculates metrics for each patient...")
   await recordMetric(metric)
+
+  console.log("Pharm company reveals information about placebo takers...")
   await revealPlaceboOrPill(isPlacebo)
+
+  console.log("Calculating average results")
   const results = await readResults()
 
   console.log("Results: ", results)
 }
 
-console.log("hello world")
+console.log("Clinical Trial")
 
 trial()

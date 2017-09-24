@@ -168,7 +168,7 @@ async function trial(){
   const entryHash = data[1]
   const finalHash = data[2]
   const metric = parseInt(data[3])
-  const isPlacebo = data[4] === "true"
+  const isPlacebo = data[4].toLowerCase() === "true"
 
   // console.log("mappingHash", mappingHash)
   // console.log("entryHash", entryHash)

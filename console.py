@@ -3,7 +3,7 @@ import ipfsapi
 import json
 
 api = ipfsapi.connect('127.0.0.1', 5001)
-file = open("./data.txt", 'w')
+file = open("./js/data.txt", 'w')
 pre = bbs98.PRE()
 # patient keys
 sk_a = pre.gen_priv(dtype=bytes)
@@ -52,7 +52,7 @@ def provideDataForResearcher(msg):
   emsg_b, e_b = encryptTestResults(msg)
   # put to decentralized database
   res_id = api.add_json(msg); # should be encrypted_data, but hz how to save fucking bytes
-  print("Patient encrypted measurements saved in IPFS");
+  print("\n\nPatient encrypted measurements saved in IPFS");
   print("http://localhost:8080/ipfs/" + res_id)
   writefile(res_id)
 
@@ -82,18 +82,18 @@ timestampMapping(mapping)
 
 ########## PATIENT #########
 
-print("Patient encrypts entryTestResult and finalTestResult and send them with encryption keys to Researcher, send hashes to Contract")
+print("\n\nPatient encrypts entryTestResult and finalTestResult and send them with encryption keys to Researcher, send hashes to Contract\n")
 
 # provide data for entry test
 entryTestResult_b, entryTestResult_e_b = provideDataForResearcher(entryTestResult)
-print("\n\nEncrypted entryTestResult")
+print("\nEncrypted entryTestResult")
 print(entryTestResult_b)
 print("\nKey")
 print(entryTestResult_e_b)
 
 # provide data for final test
 finalTestResult_b, finalTestResult_e_b = provideDataForResearcher(finalTestResult)
-print("\n\nEncrypted entryTestResult")
+print("\nEncrypted entryTestResult")
 print(finalTestResult_b)
 print("\nKey")
 print(finalTestResult_e_b)
@@ -106,7 +106,7 @@ print("\n\nResearcher receives encrypted results and key from Patient, decrypts 
 
 # calculate metric based on provided data
 decrypted_data = decryptTestResults(finalTestResult_b, finalTestResult_e_b)
-print("\n\nDecrypted results")
+print("\nDecrypted results")
 print(decrypted_data)
 
 metric = calculateMetrics(decrypted_data)

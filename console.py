@@ -3,6 +3,7 @@ import ipfsapi
 import json
 
 api = ipfsapi.connect('127.0.0.1', 5001)
+file = open("./data.txt", 'w')
 pre = bbs98.PRE()
 # patient keys
 sk_a = pre.gen_priv(dtype=bytes)
@@ -16,9 +17,11 @@ def serializeResults(results):
   return '-'.join(map(str, results))
 
 def writefile(str):
-  with open("./data.txt", 'a') as file:
-    file.write(str + "\n")  
-    file.close()
+  file.write(str + "\n")  
+
+def timestampMapping(mapping):
+  res_id = api.add_json(json.dumps(mapping))
+  writefile(res_id)
 
 def encryptTestResults(msg):
   # Alice puts test results data
@@ -32,9 +35,8 @@ def encryptTestResults(msg):
   emsg_b = pre.reencrypt(rk_ae, emsg)
   return emsg_b, e_b
 
-def timestampMatching(matching):
-  res_id = api.add_json(json.dumps(matching))
-  writefile(str(matching))
+def providePlacebo(placebo):
+  writefile(str(placebo))
 
 
 def calculateMetrics(decrypted_data):
@@ -64,11 +66,18 @@ def decryptTestResults(emsg_b, e_b):
 
 
 # define params
+mapping = {'patient_id': True}
 entryTestResult = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 finalTestResult = [5, 6, 7, 8, 9, 10, 11, 12, 13]
 metric = 0
-matching = True
+is_placebo = True
 
+
+########## PHARMA ###########
+
+print("\n\nPharma time stamps encrypted matching <patient, is_placebo> to decentralized database, sends to Contract")
+
+timestampMapping(mapping)
 
 
 ########## PATIENT #########
@@ -109,10 +118,10 @@ input("\n\nProceed")
 
 ########## PHARMA ###########
 
-print("\n\nPharma time stamps encrypted matching <patient, is_placebo> to decentralized database, sends to Contract")
+print("\n\nPharma disclosures to contract list of Placebo patients")
 
 # time stamp encrypted matching to decentralized database
-timestampMatching(matching)
+providePlacebo(is_placebo)
 
 print("\n\nNow let's deploy a contract")
 
